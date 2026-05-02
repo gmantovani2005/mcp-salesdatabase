@@ -1,0 +1,20 @@
+services:
+  mcp:
+    build:
+      context: .
+      dockerfile: .container/Dockerfile
+    image: mcp-salesdatabase:latest
+    container_name: mcp-salesdatabase
+    env_file:
+      - .env
+    environment:
+      MCP_TRANSPORT: sse
+      MCP_SSE_HOST: 0.0.0.0
+      MCP_SSE_PORT: "8000"
+    ports:
+      - "8000:8000"
+    # Se o PostgreSQL roda na máquina host (fora do Docker), use
+    # host.docker.internal e mantenha o extra_hosts abaixo.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

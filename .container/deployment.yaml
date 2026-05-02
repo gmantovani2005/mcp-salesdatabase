@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-salesdatabase
+  labels:
+    app: mcp-salesdatabase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-salesdatabase
+  template:
+    metadata:
+      labels:
+        app: mcp-salesdatabase
+    spec:
+      containers:
+        - name: mcp
+          image: mcp-salesdatabase:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: sse
+              containerPort: 8000
+          env:
+            - name: MCP_TRANSPORT
+              value: sse
+            - name: MCP_SSE_HOST
+              value: "0.0.0.0"
+            - name: MCP_SSE_PORT
+              value: "8000"
+            # As credenciais do PostgreSQL devem vir de um Secret externo.
+            # Crie o secret previamente:
+            #   kubectl create secret generic mcp-salesdatabase-db \
+            #     --from-literal=POSTGRES_HOST=... \
+            #     --from-literal=POSTGRES_PORT=5432 \
+            #     --from-literal=POSTGRES_DB=salesdb \
+            #     --from-literal=POSTGRES_USER=... \
+            #     --from-literal=POSTGRES_PASSWORD=...
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-salesdatabase-db
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-salesdatabase-db
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-salesdatabase-db
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-salesdatabase-db
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mcp-salesdatabase-db
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            tcpSocket:
+              port: sse
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: sse
+            initialDelaySeconds: 15
+            periodSeconds: 20

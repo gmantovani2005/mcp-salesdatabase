@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-salesdatabase
+  labels:
+    app: mcp-salesdatabase
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-salesdatabase
+  ports:
+    - name: sse
+      protocol: TCP
+      port: 8000
+      targetPort: sse
