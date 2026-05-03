@@ -1,76 +1,76 @@
 # mcp-salesdatabase
 
-Servidor **MCP (Model Context Protocol)** em Python que conecta a uma base de
-vendas em **PostgreSQL** e expõe **prompts**, **resources** e **tools** em
-**português do Brasil** para análise de dados.
+An **MCP (Model Context Protocol)** server in Python that connects to a sales
+database in **PostgreSQL** and exposes **prompts**, **resources**, and **tools** in
+**Brazilian Portuguese** for data analysis.
 
-O dataset de referência é o
+The reference dataset is the
 [Online Sales Dataset (Kaggle)](https://www.kaggle.com/datasets/shreyanshverma27/online-sales-dataset-popular-marketplace-data).
-O schema (`docs/schema.sql`) cobre as tabelas `category`, `region`,
-`payment_method`, `product` e `sales_order`.
+The schema (`docs/schema.sql`) covers the `category`, `region`,
+`payment_method`, `product`, and `sales_order` tables.
 
-## Pré-requisitos
+## Prerequisites
 
 - Python **3.14**
 - [`uv`](https://docs.astral.sh/uv/) ≥ 0.4
-- Acesso a um PostgreSQL com as tabelas de `docs/schema.sql` já populadas
-- Opcional: Docker / Docker Compose / Kubernetes para empacotamento
+- Access to a PostgreSQL database with the tables from `docs/schema.sql` already populated
+- Optional: Docker / Docker Compose / Kubernetes for packaging
 
-## Configuração
+## Configuration
 
-Copie o template e ajuste as variáveis para apontar para o seu PostgreSQL:
+Copy the template and adjust the variables to point to your PostgreSQL:
 
 ```bash
 cp .env.example .env
-# edite .env com host/usuário/senha
+# edit .env with host/user/password
 ```
 
-Variáveis disponíveis (todas têm default):
+Available variables (all have defaults):
 
-| Variável            | Default     | Descrição                                  |
+| Variable            | Default     | Description                                |
 |---------------------|-------------|--------------------------------------------|
-| `POSTGRES_HOST`     | `localhost` | Host do PostgreSQL                         |
-| `POSTGRES_PORT`     | `5432`      | Porta                                      |
-| `POSTGRES_DB`       | `salesdb`   | Nome do banco                              |
-| `POSTGRES_USER`     | `salesuser` | Usuário                                    |
-| `POSTGRES_PASSWORD` | (vazio)     | Senha                                      |
-| `POSTGRES_POOL_MAX` | `5`         | Tamanho máximo do pool de conexões         |
-| `MCP_TRANSPORT`     | `stdio`     | `stdio` (dev) ou `sse` (container)         |
-| `MCP_SSE_HOST`      | `0.0.0.0`   | Host de bind no modo SSE                   |
-| `MCP_SSE_PORT`      | `8000`      | Porta no modo SSE                          |
+| `POSTGRES_HOST`     | `localhost` | PostgreSQL host                            |
+| `POSTGRES_PORT`     | `5432`      | Port                                       |
+| `POSTGRES_DB`       | `salesdb`   | Database name                              |
+| `POSTGRES_USER`     | `salesuser` | User                                       |
+| `POSTGRES_PASSWORD` | (empty)     | Password                                   |
+| `POSTGRES_POOL_MAX` | `5`         | Maximum connection pool size               |
+| `MCP_TRANSPORT`     | `stdio`     | `stdio` (dev) or `sse` (container)         |
+| `MCP_SSE_HOST`      | `0.0.0.0`   | Bind host in SSE mode                      |
+| `MCP_SSE_PORT`      | `8000`      | Port in SSE mode                           |
 
-## Desenvolvimento (stdio + MCP Inspector)
+## Development (stdio + MCP Inspector)
 
 ```bash
 uv sync
 uv run mcp dev main.py
 ```
 
-> O prompt original sugeria `uv run dev main.py`. O comando real do MCP CLI é
-> **`uv run mcp dev main.py`**: ele inicia o Inspector e conecta ao servidor
-> via stdio, permitindo testar as tools, prompts e resources visualmente.
+> The original prompt suggested `uv run dev main.py`. The actual MCP CLI command is
+> **`uv run mcp dev main.py`**: it starts the Inspector and connects to the server
+> via stdio, allowing you to test tools, prompts, and resources visually.
 
-Para rodar somente o servidor stdio (sem Inspector):
+To run only the stdio server (without Inspector):
 
 ```bash
 uv run python main.py
 ```
 
-## Container (modo SSE)
+## Container (SSE mode)
 
 ```bash
 docker compose up --build
 ```
 
-O serviço sobe em `http://localhost:8000/sse`. Como o PostgreSQL é externo:
+The service will be up at `http://localhost:8000/sse`. Since PostgreSQL is external:
 
-- Se ele rodar **na máquina host (fora do Docker)**, o `.env` pode usar
-  `POSTGRES_HOST=host.docker.internal` (já há `extra_hosts` configurado no
+- If it runs **on the host machine (outside Docker)**, `.env` can use
+  `POSTGRES_HOST=host.docker.internal` (`extra_hosts` is already configured in
   `docker-compose.yaml`).
-- Se ele rodar **em outro container Docker**, conecte os dois à mesma network
-  e use o nome do container como host.
+- If it runs **in another Docker container**, connect both to the same network
+  and use the container name as the host.
 
-Para testar o SSE diretamente:
+To test SSE directly:
 
 ```bash
 curl -N http://localhost:8000/sse
@@ -78,75 +78,75 @@ curl -N http://localhost:8000/sse
 
 ## Kubernetes
 
-Os manifestos ficam em `.container/`:
+Manifests are located in `.container/`:
 
 ```bash
-# 1. Crie o Secret com as credenciais do banco
+# 1. Create the Secret with database credentials
 kubectl create secret generic mcp-salesdatabase-db \
-  --from-literal=POSTGRES_HOST=postgres.exemplo.svc.cluster.local \
+  --from-literal=POSTGRES_HOST=postgres.example.svc.cluster.local \
   --from-literal=POSTGRES_PORT=5432 \
   --from-literal=POSTGRES_DB=salesdb \
   --from-literal=POSTGRES_USER=salesuser \
-  --from-literal=POSTGRES_PASSWORD=sua-senha
+  --from-literal=POSTGRES_PASSWORD=your-password
 
-# 2. Aplique deployment + service
+# 2. Apply deployment + service
 kubectl apply -f .container/deployment.yaml
 kubectl apply -f .container/service.yaml
 ```
 
-O `Service` é `ClusterIP` na porta 8000. Exponha via Ingress / port-forward
-conforme sua infraestrutura.
+The `Service` is `ClusterIP` on port 8000. Expose it via Ingress / port-forward
+according to your infrastructure.
 
-## Tools, Resources e Prompts
+## Tools, Resources, and Prompts
 
 ### Tools (PT-BR)
 
-| Tool                          | Descrição                                                          |
+| Tool                          | Description                                                        |
 |-------------------------------|--------------------------------------------------------------------|
-| `executar_consulta_sql`       | Executa `SELECT`/`WITH` arbitrário (read-only, com LIMIT padrão)   |
-| `listar_tabelas`              | Lista as tabelas do schema público                                  |
-| `descrever_tabela`            | Colunas e tipos de uma tabela                                      |
-| `vendas_por_categoria`        | Receita/unidades agrupadas por categoria                           |
-| `vendas_por_regiao`           | Receita/unidades agrupadas por região                              |
-| `vendas_por_metodo_pagamento` | Receita/unidades agrupadas por método de pagamento                 |
-| `vendas_por_periodo`          | Receita por dia/mês/ano (`date_trunc`)                             |
-| `top_produtos`                | Top N produtos por receita ou unidades                             |
+| `executar_consulta_sql`       | Executes arbitrary `SELECT`/`WITH` (read-only, with default LIMIT) |
+| `listar_tabelas`              | Lists tables in the public schema                                  |
+| `descrever_tabela`            | Columns and types of a table                                       |
+| `vendas_por_categoria`        | Revenue/units grouped by category                                  |
+| `vendas_por_regiao`           | Revenue/units grouped by region                                    |
+| `vendas_por_metodo_pagamento` | Revenue/units grouped by payment method                            |
+| `vendas_por_periodo`          | Revenue by day/month/year (`date_trunc`)                           |
+| `top_produtos`                | Top N products by revenue or units                                 |
 
-> **Segurança**: a tool `executar_consulta_sql` só aceita queries que começam
-> com `SELECT`/`WITH`. Comandos de escrita (`INSERT`, `UPDATE`, `DELETE`,
-> `DROP`, `ALTER`, `TRUNCATE`, `CREATE`, `COPY` etc.) são bloqueados.
+> **Security**: the `executar_consulta_sql` tool only accepts queries starting
+> with `SELECT`/`WITH`. Write commands (`INSERT`, `UPDATE`, `DELETE`,
+> `DROP`, `ALTER`, `TRUNCATE`, `CREATE`, `COPY`, etc.) are blocked.
 
 ### Resources
 
-| URI                                  | Conteúdo                                          |
+| URI                                  | Content                                           |
 |--------------------------------------|---------------------------------------------------|
-| `salesdb://schema`                   | DDL completo (`docs/schema.sql`)                  |
-| `salesdb://insights`                 | Descrição do dataset (`docs/data-sales.md`)       |
-| `salesdb://tabelas`                  | Lista de tabelas + linhas estimadas (JSON)        |
-| `salesdb://tabelas/{nome}/amostra`   | Até 20 linhas da tabela informada (JSON)          |
+| `salesdb://schema`                   | Complete DDL (`docs/schema.sql`)                  |
+| `salesdb://insights`                 | Dataset description (`docs/data-sales.md`)        |
+| `salesdb://tabelas`                  | List of tables + estimated rows (JSON)            |
+| `salesdb://tabelas/{nome}/amostra`   | Up to 20 rows from the specified table (JSON)     |
 
 ### Prompts
 
-| Prompt                       | Objetivo                                                |
+| Prompt                       | Objective                                               |
 |------------------------------|---------------------------------------------------------|
-| `analise_geral_vendas`       | Visão consolidada (categoria, região, top produtos)     |
-| `tendencia_temporal`         | Sazonalidade e tendência (granularidade configurável)   |
-| `comparativo_regional`       | Comparativo de regiões, opcionalmente por categoria     |
-| `desempenho_produto`         | Top produtos por receita e por unidades                 |
-| `analise_metodo_pagamento`   | Impacto dos métodos de pagamento na receita             |
+| `analise_geral_vendas`       | Consolidated view (category, region, top products)      |
+| `tendencia_temporal`         | Seasonality and trends (configurable granularity)       |
+| `comparativo_regional`       | Region comparison, optionally by category               |
+| `desempenho_produto`         | Top products by revenue and units                       |
+| `analise_metodo_pagamento`   | Impact of payment methods on revenue                    |
 
-## Estrutura do projeto
+## Project structure
 
 ```
 .
-├── .container/                  Dockerfile + manifestos Kubernetes
-├── docs/                        Schema, descrição do dataset e prompt inicial
+├── .container/                  Dockerfile + Kubernetes manifests
+├── docs/                        Schema, dataset description, and initial prompt
 ├── server/
-│   ├── app.py                   Instância FastMCP
-│   ├── database.py              Pool psycopg + run_select read-only
-│   ├── tools.py                 Tools MCP (PT-BR)
-│   ├── resources.py             Resources MCP (PT-BR)
-│   └── prompts.py               Prompts MCP (PT-BR)
+│   ├── app.py                   FastMCP instance
+│   ├── database.py              psycopg pool + read-only run_select
+│   ├── tools.py                 MCP Tools (PT-BR)
+│   ├── resources.py             MCP Resources (PT-BR)
+│   └── prompts.py               MCP Prompts (PT-BR)
 ├── docker-compose.yaml
 ├── main.py                      Entrypoint (stdio | sse)
 └── pyproject.toml
